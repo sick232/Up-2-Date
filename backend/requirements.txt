@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+supabase
+apscheduler
+feedparser
+praw
+requests
+python-dotenv
+pydantic
