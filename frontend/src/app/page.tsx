@@ -277,7 +277,7 @@ export default function Home() {
           ))}
           <Link
 
-            href="/Saved"
+            href="/saved"
             className="font-semibold tracking-wide transition-all shrink-0 pb-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
           >
             Saved
