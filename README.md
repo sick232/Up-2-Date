@@ -13,7 +13,9 @@ Up-2-date is a blazing-fast, personalized news aggregator that uses AI to scrape
 ## ✨ Key Features
 
 - **🤖 AI Daily Briefs:** Get digestible, AI-generated summaries of the day's top complex stories.
-- **🎯 Hyper-Personalized "For You" Feed:** A dedicated news feed that strictly strictly adheres to user-selected onboarding interests. No algorithmic bloat.
+- **⚡ Blazing Fast:** Powered by FastAPI caching (`fastapi-cache2`), GZip compression, and global Next.js SWR deduping to deliver payload under milliseconds.
+- **📱 App-Like Experience:** Optimized for mobile viewing as a PWA (Progressive Web App). Add it directly to your home screen!
+- **🎯 Hyper-Personalized "For You" Feed:** A dedicated news feed that strictly adheres to user-selected onboarding interests. No algorithmic bloat.
 - **📝 Integrated Note-Taking & Bookmarks:** Save articles for later and attach personal, floating markdown notes directly to your Daily Briefs.
 - **🔐 Secure Authentication:** Seamless email/password and Google OAuth powered by Supabase.
 - **🕷️ Multi-Source Scraping:** Aggregates real-time data from RSS feeds, Reddit, and standard news pipelines.
@@ -40,12 +42,14 @@ How does Up-2-date stack up against the giants?
 
 - **Framework:** Next.js 16 (App Router)
 - **Styling:** Tailwind CSS & Lucide Icons
-- **State/Fetching:** React Hooks, Axios
+- **State/Fetching:** Setup with `SWR` (Global deduping & `revalidateOnFocus`), Fetch/Axios.
 - **Auth:** Supabase Auth Helpers (`@supabase/ssr`)
+- **PWA/Icons:** Custom SVG icon/favicons matching OS-level branding.
 
 **Backend (Render/Railway Ready)**
 
 - **Framework:** FastAPI (Python)
+- **Performance:** `fastapi-cache2` (InMemoryBackend), `Uvicorn`, and native `GZipMiddleware`
 - **Database:** PostgreSQL (via Supabase)
 - **AI & Pipelines:** Custom Python web scrapers (`services/reddit.py`, `services/rss.py`) + AI Summarization (`services/ai.py`)
 
