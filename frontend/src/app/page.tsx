@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import useSWR from "swr";
+import { api, fetcher } from "@/utils/fetcher";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import NewsCard, { Article } from "@/components/NewsCard";
@@ -9,13 +10,6 @@ import DailyBriefCard, { DailyBriefData } from "@/components/DailyBriefCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader2, Settings, Save, RefreshCw, Star, Edit3 } from "lucide-react";
 
-const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api"
-).replace(/\/$/, "");
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
 
 const CATEGORIES = [
   "Technology",
@@ -36,13 +30,8 @@ const CATEGORIES = [
 ];
 
 export default function Home() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [dailyBrief, setDailyBrief] = useState<DailyBriefData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("trending");
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
-
-  const [userInterests, setUserInterests] = useState<string[]>([]);
+  
   const [savingInterests, setSavingInterests] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<"en" | "hi">("en");
 
@@ -51,15 +40,48 @@ export default function Home() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
-      setIsAuthLoaded(true);
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) setUserId(user.id);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsAuthLoaded(true);
+      }
     };
     fetchUser();
   }, []);
+
+  // Fetch current tab data
+  const endpoint =
+    activeTab === "dailybrief" ? "/daily-brief" :
+    activeTab === "bookmarks" ? "/bookmarks" :
+    activeTab === "interests" ? "/profiles/interests" :
+    `/news/${activeTab === "trending" ? "trending" : activeTab === "foryou" ? "foryou" : `category/${activeTab}`}`;
+
+  const fetcherWithAuth = ([url, uid]: [string, string | null]) =>
+    api.get(url, { headers: { "user-id": uid || "" } }).then((res) => res.data);
+
+  const { data, error, isLoading, mutate } = useSWR(
+    isAuthLoaded ? [endpoint, userId] : null,
+    fetcherWithAuth
+  );
+
+  // Fetch bookmarks globally so we can optimistic update across tabs
+  const { data: bookmarksData, mutate: mutateBookmarks } = useSWR<Article[]>(
+    isAuthLoaded ? ["/bookmarks", userId] : null,
+    fetcherWithAuth
+  );
+
+  // Map fetched data to rendering variables
+  const loading = !isAuthLoaded || isLoading;
+  const articles: Article[] = (activeTab !== "dailybrief" && activeTab !== "interests" && data) ? data : [];
+  const dailyBrief: DailyBriefData | null = activeTab === "dailybrief" && data ? data : null;
+  const userInterests: string[] = activeTab === "interests" && data?.interests ? data.interests : [];
+  const bookmarkedIds = new Set((bookmarksData || []).map((a) => a.id));
 
   useEffect(() => {
     const match = document.cookie.match(/googtrans=\/en\/([^;]+)/);
@@ -90,110 +112,18 @@ export default function Home() {
     }
   };
 
-  // 🔹 Fetch News
-  const fetchNews = async (endpoint: string) => {
-    setLoading(true);
-    setDailyBrief(null);
-    try {
-      const url = `/news/${endpoint}`;
-      const response = await api.get<Article[]>(url, {
-        headers: { "user-id": userId || "" },
-      });
-      setArticles(response.data);
-    } catch (error) {
-      console.error("Error fetching news:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔹 Fetch Bookmarks
-  const fetchBookmarks = async () => {
-    setLoading(true);
-    setDailyBrief(null);
-    try {
-      const response = await api.get<Article[]>("/bookmarks", {
-        headers: { "user-id": userId || "" },
-      });
-
-      setArticles(response.data);
-      const ids = new Set(response.data.map((b) => b.id));
-      setBookmarkedIds(ids);
-    } catch (error) {
-      console.error("Error fetching bookmarks:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔹 Fetch Interests
-  const fetchInterests = async () => {
-    setLoading(true);
-    setDailyBrief(null);
-    try {
-      const response = await api.get("/profiles/interests", {
-        headers: { "user-id": userId || "" },
-      });
-      setUserInterests(response.data.interests || []);
-    } catch (error) {
-      console.error("Error fetching interests:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔹 Save Interests
-  const saveInterests = async () => {
-    setSavingInterests(true);
-    try {
-      await api.put(
-        "/profiles/interests",
-        { interests: userInterests },
-        { headers: { "user-id": userId || "" } },
-      );
-      setActiveTab("foryou");
-    } catch (error) {
-      console.error("Error saving interests:", error);
-    } finally {
-      setSavingInterests(false);
-    }
-  };
-
-  const fetchDailyBrief = async () => {
-    setLoading(true);
-    setArticles([]);
-    try {
-      const response = await api.get<DailyBriefData>("/daily-brief", {
-        headers: { "user-id": userId || "" },
-      });
-      setDailyBrief(response.data);
-    } catch (error) {
-      console.error("Error fetching daily brief:", error);
-      setDailyBrief(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔹 Toggle Interest (SAFE)
-  const toggleInterest = (category: string) => {
-    setUserInterests((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category],
-    );
-  };
-
-  // 🔹 Toggle Bookmark (with rollback)
+    // 🔹 Toggle Bookmark (with optimistic SWR mutate)
   const toggleBookmark = async (article: Article) => {
+    if (!bookmarksData) return;
     const articleId = article.id;
-    const prev = new Set(bookmarkedIds);
-    const updated = new Set(prev);
-
-    if (updated.has(articleId)) updated.delete(articleId);
-    else updated.add(articleId);
-
-    setBookmarkedIds(updated);
+    const isCurrentlyBookmarked = bookmarkedIds.has(articleId);
+    
+    // Optimistically update
+    const newBookmarks = isCurrentlyBookmarked
+      ? bookmarksData.filter((a: Article) => a.id !== articleId)
+      : [...bookmarksData, article];
+      
+    mutateBookmarks(newBookmarks, false);
 
     try {
       await api.post(
@@ -201,39 +131,20 @@ export default function Home() {
         { article_id: articleId, article },
         { headers: { "user-id": userId || "" } },
       );
-
-      if (activeTab === "bookmarks" && !updated.has(articleId)) {
-        setArticles((prevArticles) =>
-          prevArticles.filter((a) => a.id !== articleId),
-        );
-      }
+      // Revalidate
+      mutateBookmarks();
     } catch (error) {
       console.error("Error toggling bookmark:", error);
-      setBookmarkedIds(prev); // rollback
+      // Rollback
+      mutateBookmarks(bookmarksData, false);
     }
   };
 
   // 🔹 Manual Refresh
   const handleRefresh = () => {
-    if (activeTab === "trending") fetchNews("trending");
-    else if (activeTab === "dailybrief") fetchDailyBrief();
-    else if (activeTab === "foryou") fetchNews("foryou");
-    else if (activeTab === "bookmarks") fetchBookmarks();
-    else if (activeTab === "interests") fetchInterests();
-    else fetchNews(`category/${activeTab}`);
+    mutate();
+    mutateBookmarks();
   };
-
-  // 🔹 Tab Effect
-  useEffect(() => {
-    if (!isAuthLoaded) return;
-
-    if (activeTab === "trending") fetchNews("trending");
-    else if (activeTab === "dailybrief") fetchDailyBrief();
-    else if (activeTab === "foryou") fetchNews("foryou");
-    else if (activeTab === "bookmarks") fetchBookmarks();
-    else if (activeTab === "interests") fetchInterests();
-    else fetchNews(`category/${activeTab}`);
-  }, [activeTab, isAuthLoaded, userId]);
 
   return (
     <main className="h-[100dvh] w-full bg-gray-50 dark:bg-[#121212] flex flex-col relative overflow-hidden transition-colors">

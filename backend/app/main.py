@@ -1,13 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 from app.services.pipeline import start_pipeline, scheduler
 from app.api.routes import router as api_router
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Start the background news aggregator pipeline
     start_pipeline()
+    FastAPICache.init(InMemoryBackend())
     yield
     # Shutdown: Stop the pipeline gracefully
     scheduler.shutdown()
@@ -27,6 +31,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.include_router(api_router, prefix="/api", tags=["News"])
 

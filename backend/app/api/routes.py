@@ -10,6 +10,7 @@ from app.services.daily_brief import (
     reorder_brief_categories_for_interests,
     today_ist_date,
 )
+from fastapi_cache.decorator import cache
 from pathlib import Path
 from datetime import datetime, timezone
 import threading
@@ -214,6 +215,7 @@ def resolve_summary(url: str):
     return {"summary": summary}
 
 @router.get("/daily-brief")
+@cache(expire=300)
 def get_daily_brief(user_id: Optional[str] = Header(default=None, description="Supabase Auth User ID")):
     """Return today's daily brief. If missing, generate and return it."""
     today_key = today_ist_date()
@@ -273,6 +275,7 @@ def get_interests(user_id: str = Header(..., description="Supabase Auth User ID"
     return {"interests": response.data[0].get("interests", [])}
 
 @router.get("/news/trending")
+@cache(expire=1800)
 def get_trending_news(limit: int = 20):
     """Fetch the latest AI-summarized trending news."""
     supabase = get_supabase_client()
@@ -403,6 +406,7 @@ def get_bookmarks(user_id: str = Header(..., description="Supabase Auth User ID"
         raise HTTPException(status_code=500, detail="Failed to fetch bookmarks")
 
 @router.get("/news/category/{category_name}")
+@cache(expire=1800)
 def get_category_news(category_name: str, limit: int = 20):
     supabase = get_supabase_client()
     if not supabase:
