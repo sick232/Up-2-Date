@@ -264,9 +264,10 @@ export default function NewsCard({ article, isBookmarked, onBookmarkToggle }: Ne
               </span>
             )}
           </div>
-          <span className="px-3 py-1 bg-blue-600/90 dark:bg-blue-600/80 backdrop-blur-md text-white text-xs font-bold rounded-full flex items-center gap-1">
-            <Sparkles size={12} /> AI Summarized
-          </span>
+          <span className="px-3 py-1 bg-[#595963] text-white text-xs font-bold rounded-full flex items-center gap-1.5 shadow-sm">
+  <img src="/icon.svg" width={14} height={14} alt="Up-2-Date Icon" className="mt-[-1px]" />
+  Up-2-Date
+</span>
         </div>
 
         {/* Content Area */}
