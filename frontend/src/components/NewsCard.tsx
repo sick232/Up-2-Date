@@ -264,10 +264,10 @@ export default function NewsCard({ article, isBookmarked, onBookmarkToggle }: Ne
               </span>
             )}
           </div>
-          <span className="px-3 py-1 bg-[#595963] text-white text-xs font-bold rounded-full flex items-center gap-1.5 shadow-sm">
-  <img src="/icon.svg" width={14} height={14} alt="Up-2-Date Icon" className="mt-[-1px]" />
-  Up-2-Date
-</span>
+                     <span className="text-black dark:text-white text-sm font-medium flex items-center gap-1.5 drop-shadow-md border border-black dark:border-white rounded-full px-3 py-1">
+            <img src="/icon.svg" width={16} height={16} alt="Up-2-Date Icon" className="mt-[-1px]" />
+            Up-2-Date
+          </span>
         </div>
 
         {/* Content Area */}
