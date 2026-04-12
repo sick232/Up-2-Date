@@ -140,10 +140,14 @@ export default function Home() {
     }
   };
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // 🔹 Manual Refresh
-  const handleRefresh = () => {
-    mutate();
-    mutateBookmarks();
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([mutate(), mutateBookmarks()]);
+    // Small artificial delay to ensure the user gets visual feedback even on fast connections
+    setTimeout(() => setIsRefreshing(false), 500);
   };
 
   return (
@@ -214,11 +218,11 @@ export default function Home() {
           <ThemeToggle />
           <button
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={loading || isRefreshing}
             className="p-2 shrink-0 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition disabled:opacity-50"
             title="Refresh"
           >
-            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={20} className={loading || isRefreshing ? "animate-spin" : ""} />
           </button>
           <Link
             href="/settings"
